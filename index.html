@@ -41,7 +41,7 @@
             
             // State Form untuk 20 Kolom Excel
             const [formData, setFormData] = React.useState({
-                No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',
+                No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',f
                 'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
                 'PIC assigned': '', 'Assigned Date and Time': '', 'Start Date and Time': '', 'Target Date and Time': '',
                 'Actual Finish Date and Time': '', 'Duration (Hour)': '', 'Target (Hour)': '', 'Score (%)': '',
@@ -177,11 +177,7 @@
                         </div>
                     </header>
 
-                    {API_URL === "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec" && (
-                        <div class="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded mb-6 text-sm">
-                            <strong>Perhatian:</strong> Jangan lupa isi variabel <code class="bg-amber-200 px-1 py-0.5 rounded">API_URL</code> di baris ke-21 dengan tautan Web App milikmu.
-                        </div>
-                    )}
+                    {API_URL === "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec"}
 
                     {loading && <div class="text-center font-bold text-emerald-600 my-4 animate-bounce">Menghubungkan ke Google Sheets...</div>}
 
