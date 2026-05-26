@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Support Ticketing System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // CONFIG: PASTE URL GOOGLE APPS SCRIPT KAMU DI SINI
+        // ==========================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec";
+
+        // Data Referensi dari Sheet VALUE
+        const REF_BU = ["AND", "LYN", "MAV", "MBS", "MST", "OPI", "PAL"];
+        const REF_CATEGORY = ["Hardware", "Network", "Internet", "Oracle", "Odoo", "Harmoni", "Development", "Lain-lain"];
+        const REF_PRIORITY = ["High", "Medium", "Low"];
+        const REF_PIC = ["Teguh", "Ang Linia", "Bong Susanto", "IT Support"];
+        const REF_STATUS = ["Open", "Close", "Pause", "Reassign", "Done"];
+        const REF_RANGE = [
+            { code: "Range 1", target: "1 Hour", hour: 1 },
+            { code: "Range 2", target: "4 Hours", hour: 4 },
+            { code: "Range 3", target: "8 Hours", hour: 8 },
+            { code: "Range 4", target: "24 Hours", hour: 24 },
+            { code: "Range 5", target: "Over 24 Hours", hour: 48 }
+        ];
+
+        function App() {
+            const [tickets, setTickets] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
+            const [view, setView] = React.useState('dashboard'); // dashboard, list, form
+            const [currentTicket, setCurrentTicket] = React.useState(null);
+            const [searchQuery, setSearchQuery] = React.useState('');
+            
+            // Form State
+            const [formData, setFormData] = React.useState({
+                No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',
+                'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
+                'PIC assigned': '', 'Assigned Date and Time': '', 'Start Date and Time': '', 'Target Date and Time': '',
+                'Actual Finish Date and Time': '', 'Duration (Hour)': '', 'Target (Hour)': '', 'Score (%)': '',
+                'Resolution Description': '', Status: 'Open'
+            });
+
+            React.useEffect(() => {
+                fetchTickets();
+            }, []);
+
+            const fetchTickets = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch(`${API_URL}?action=getAll`);
+                    const result = await response.json();
+                    if (result.status === 'ok') {
+                        setTickets(result.data);
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data:", error);
+                    alert("Gagal koneksi ke Google Sheets API!");
+                }
+                setLoading(false);
+            };
+
+            // Efek auto-hitung target date & time berdasarkan range code & assigned date
+            React.useEffect(() => {
+                if (formData['Assigned Date and Time'] && formData['Target (Hour)']) {
+                    const assignedDate = new Date(formData['Assigned Date and Time']);
+                    const hoursToAdd = parseFloat(formData['Target (Hour)']) || 0;
+                    assignedDate.setHours(assignedDate.getHours() + hoursToAdd);
+                    
+                    // Format back to YYYY-MM-DDTHH:MM for datetime-local input
+                    const formatted = assignedDate.toISOString().slice(0, 16);
+                    setFormData(prev => ({ ...prev, 'Target Date and Time': formatted }));
+                }
+            </script>
+        </body>
+        </html>
