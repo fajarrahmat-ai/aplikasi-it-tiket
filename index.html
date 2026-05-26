@@ -8,12 +8,8 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-    </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -22,7 +18,7 @@
         // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec";
 
-        // Data Referensi dari Sheet VALUE
+        // Data Referensi Nilai (Sheet VALUE)
         const REF_BU = ["AND", "LYN", "MAV", "MBS", "MST", "OPI", "PAL"];
         const REF_CATEGORY = ["Hardware", "Network", "Internet", "Oracle", "Odoo", "Harmoni", "Development", "Lain-lain"];
         const REF_PRIORITY = ["High", "Medium", "Low"];
@@ -38,12 +34,12 @@
 
         function App() {
             const [tickets, setTickets] = React.useState([]);
-            const [loading, setLoading] = React.useState(true);
-            const [view, setView] = React.useState('dashboard'); // dashboard, list, form
-            const [currentTicket, setCurrentTicket] = React.useState(null);
-            const [searchQuery, setSearchQuery] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+            const [view, setView] = React.useState('list'); // 'list' atau 'form'
+            const [search, setSearch] = React.useState('');
+            const [statusFilter, setStatusFilter] = React.useState('');
             
-            // Form State
+            // State Form untuk 20 Kolom Excel
             const [formData, setFormData] = React.useState({
                 No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',
                 'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
@@ -53,35 +49,353 @@
             });
 
             React.useEffect(() => {
-                fetchTickets();
+                if(API_URL !== "MASUKKAN_URL_WEB_APP_KAMU_DISINI") {
+                    fetchTickets();
+                }
             }, []);
 
             const fetchTickets = async () => {
                 setLoading(true);
                 try {
-                    const response = await fetch(`${API_URL}?action=getAll`);
-                    const result = await response.json();
-                    if (result.status === 'ok') {
-                        setTickets(result.data);
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data:", error);
-                    alert("Gagal koneksi ke Google Sheets API!");
+                    const res = await fetch(`${API_URL}?action=getAll`);
+                    const result = await res.json();
+                    if (result.status === 'ok') setTickets(result.data);
+                } catch (err) {
+                    alert("Gagal sinkronisasi ke Google Sheets!");
                 }
                 setLoading(false);
             };
 
-            // Efek auto-hitung target date & time berdasarkan range code & assigned date
-            React.useEffect(() => {
-                if (formData['Assigned Date and Time'] && formData['Target (Hour)']) {
-                    const assignedDate = new Date(formData['Assigned Date and Time']);
-                    const hoursToAdd = parseFloat(formData['Target (Hour)']) || 0;
-                    assignedDate.setHours(assignedDate.getHours() + hoursToAdd);
-                    
-                    // Format back to YYYY-MM-DDTHH:MM for datetime-local input
-                    const formatted = assignedDate.toISOString().slice(0, 16);
-                    setFormData(prev => ({ ...prev, 'Target Date and Time': formatted }));
+            // Handler Otomatisasi saat Range Code Berubah
+            const handleRangeChange = (code) => {
+                const rangeObj = REF_RANGE.find(r => r.code === code);
+                if (rangeObj) {
+                    setFormData(prev => {
+                        const updated = {
+                            ...prev,
+                            'Range Code': code,
+                            'Range Target': rangeObj.target,
+                            'Target (Hour)': rangeObj.hour
+                        };
+                        return calculateTargetAndMetrics(updated);
+                    });
                 }
-            </script>
-        </body>
-        </html>
+            };
+
+            // Handler Otomatisasi saat Tanggal Berubah
+            const handleDateChange = (field, value) => {
+                setFormData(prev => {
+                    const updated = { ...prev, [field]: value };
+                    return calculateTargetAndMetrics(updated);
+                });
+            };
+
+            // Fungsi Kalkulasi Target Date, Duration, dan Score
+            const calculateTargetAndMetrics = (data) => {
+                let current = { ...data };
+                
+                // 1. Hitung Target Date & Time = Assigned + Target (Hour)
+                if (current['Assigned Date and Time'] && current['Target (Hour)']) {
+                    const assigned = new Date(current['Assigned Date and Time']);
+                    assigned.setHours(assigned.getHours() + parseFloat(current['Target (Hour)']));
+                    current['Target Date and Time'] = assigned.toISOString().slice(0, 16);
+                }
+
+                // 2. Hitung Duration = Actual Finish - Assigned (dalam Jam)
+                if (current['Assigned Date and Time'] && current['Actual Finish Date and Time']) {
+                    const assigned = new Date(current['Assigned Date and Time']);
+                    const finish = new Date(current['Actual Finish Date and Time']);
+                    const diffMs = finish - assigned;
+                    const diffHours = Math.max(0, (diffMs / (1000 * 60 * 60)).toFixed(2));
+                    current['Duration (Hour)'] = diffHours;
+
+                    // 3. Hitung Score (%) = (Target Hour / Duration) * 100, Maksimal 100% jika tepat waktu
+                    if (parseFloat(current['Target (Hour)']) > 0) {
+                        let score = (parseFloat(current['Target (Hour)']) / parseFloat(diffHours)) * 100;
+                        if (parseFloat(diffHours) <= parseFloat(current['Target (Hour)'])) {
+                            score = 100; 
+                        }
+                        current['Score (%)'] = Math.min(100, Math.max(0, score)).toFixed(0);
+                    }
+                }
+                return current;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                // Jika No kosong, generate ID unik berbasis timestamp
+                const finalData = { ...formData, No: formData.No || 'TKT-' + Date.now() };
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // Untuk menghindari isu CORS di Apps Script
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'create', data: finalData })
+                    });
+                    alert("Tiket berhasil disimpan ke Google Sheets!");
+                    setView('list');
+                    // Reset Form
+                    setFormData({
+                        No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',
+                        'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
+                        'PIC assigned': '', 'Assigned Date and Time': '', 'Start Date and Time': '', 'Target Date and Time': '',
+                        'Actual Finish Date and Time': '', 'Duration (Hour)': '', 'Target (Hour)': '', 'Score (%)': '',
+                        'Resolution Description': '', Status: 'Open'
+                    });
+                    fetchTickets();
+                } catch (err) {
+                    alert("Error menyimpan tiket!");
+                }
+                setLoading(false);
+            };
+
+            const exportToCSV = () => {
+                if (tickets.length === 0) return alert("Belum ada data untuk diekspor!");
+                const headers = Object.keys(tickets[0]).filter(k => k !== '_row').join(",");
+                const rows = tickets.map(t => Object.keys(t).filter(k => k !== '_row').map(k => `"${t[k]}"`).join(","));
+                const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "Laporan_Tiket_IT.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // Filter pencarian teks dan status
+            const filteredTickets = tickets.filter(t => {
+                const matchSearch = Object.values(t).some(val => String(val).toLowerCase().includes(search.toLowerCase()));
+                const matchStatus = statusFilter ? t.Status === statusFilter : true;
+                return matchSearch && matchStatus;
+            });
+
+            return (
+                <div class="container mx-auto p-4 max-w-7xl">
+                    {/* Header Penting */}
+                    <header class="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm mb-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-emerald-600">IT Support Ticketing System</h1>
+                            <p class="text-sm text-gray-500">Farmasi Operational Dashboard & Logging</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onClick={() => setView(view === 'list' ? 'form' : 'list')} class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition cursor-pointer">
+                                {view === 'list' ? '+ Input Tiket Baru' : 'Lihat Daftar Tiket'}
+                            </button>
+                            <button onClick={exportToCSV} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition cursor-pointer">
+                                Export CSV (Excel)
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Jika API URL Belum Diganti */}
+                    {API_URL === "MASUKKAN_URL_WEB_APP_KAMU_DISINI" && (
+                        <div class="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded mb-6">
+                            <strong>Perhatian:</strong> Silakan ganti teks <code class="bg-amber-200 px-1 py-0.5 rounded">MASUKKAN_URL_WEB_APP_KAMU_DISINI</code> di dalam file index.html baris ke-21 dengan URL Web App dari Google Apps Script kamu terlebih dahulu agar bisa sinkron ke Google Sheet.
+                        </div>
+                    )}
+
+                    {loading && <div class="text-center font-bold text-lg text-emerald-600 my-4 animate-bounce">Sedang memproses data ke Google Sheets...</div>}
+
+                    {/* VIEW: DAFTAR TIKET */}
+                    {view === 'list' && (
+                        <div class="bg-white p-6 rounded-xl shadow-sm">
+                            <div class="flex flex-col md:flex-row gap-4 justify-between mb-4">
+                                <input type="text" placeholder="Cari tiket (User, Komponen, BU...)" value={search} onChange={e => setSearch(e.target.value)} class="border p-2 rounded-lg w-full md:w-80 outline-emerald-500" />
+                                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} class="border p-2 rounded-lg outline-emerald-500">
+                                    <option value="">Semua Status</option>
+                                    {REF_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-600">
+                                            <th class="p-3">No</th>
+                                            <th class="p-3">Date IN</th>
+                                            <th class="p-3">BU</th>
+                                            <th class="p-3">User</th>
+                                            <th class="p-3">Task Name</th>
+                                            <th class="p-3">Priority</th>
+                                            <th class="p-3">PIC</th>
+                                            <th class="p-3">Score (%)</th>
+                                            <th class="p-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm">
+                                        {filteredTickets.length === 0 ? (
+                                            <tr><td colspan="9" class="p-4 text-center text-gray-400">Tidak ada data tiket ditemukan. Klik tombol '+ Input Tiket Baru' untuk membuat data.</td></tr>
+                                        ) : (
+                                            filteredTickets.map((t, idx) => (
+                                                <tr key={idx} class="border-b border-gray-100 hover:bg-gray-50">
+                                                    <td class="p-3 font-medium text-gray-700">{t.No}</td>
+                                                    <td class="p-3">{t['Date and Time IN'] ? t['Date and Time IN'].replace('T', ' ') : '-'}</td>
+                                                    <td class="p-3"><span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-mono text-xs">{t['Bussiness Unit']}</span></td>
+                                                    <td class="p-3">{t.User}</td>
+                                                    <td class="p-3 font-medium">{t['Task Name']}</td>
+                                                    <td class="p-3">
+                                                        <span class={`px-2 py-0.5 rounded text-xs font-semibold ${t.Priority === 'High' ? 'bg-red-100 text-red-700' : t.Priority === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            {t.Priority}
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-3">{t['PIC assigned']}</td>
+                                                    <td class="p-3 font-bold text-emerald-600">{t['Score (%)'] ? t['Score (%)'] + '%' : '-'}</td>
+                                                    <td class="p-3">
+                                                        <span class={`px-2 py-0.5 rounded text-xs font-bold ${t.Status === 'Done' || t.Status === 'Close' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                            {t.Status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* VIEW: FORM INPUT TIKET */}
+                    {view === 'form' && (
+                        <form onSubmit={handleSubmit} class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+                            <h2 class="text-xl font-bold text-gray-700 border-b pb-2">Form Input Log Tiket IT Support (20 Kolom Excel)</h2>
+                            
+                            {/* Grid 1: Identitas User & BU */}
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Date and Time IN</label>
+                                    <input type="datetime-local" required value={formData['Date and Time IN']} onChange={e => handleDateChange('Date and Time IN', e.target.value)} class="w-full border p-2 rounded-lg outline-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Business Unit (BU)</label>
+                                    <select required value={formData['Bussiness Unit']} onChange={e => setFormData({...formData, 'Bussiness Unit': e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500">
+                                        <option value="">Pilih BU</option>
+                                        {REF_BU.map(bu => <option key={bu} value={bu}>{bu}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">User Name</label>
+                                    <input type="text" required placeholder="Nama User" value={formData.User} onChange={e => setFormData({...formData, User: e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Status Tiket</label>
+                                    <select value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500">
+                                        {REF_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Grid 2: Detail Task / Masalah */}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Task Name</label>
+                                    <input type="text" required placeholder="Judul Masalah/Permintaan" value={formData['Task Name']} onChange={e => setFormData({...formData, 'Task Name': e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                                    <select required value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500">
+                                        <option value="">Pilih Kategori</option>
+                                        {REF_CATEGORY.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Task Description</label>
+                                    <textarea placeholder="Detail kendala yang dialami user..." value={formData['Task Description']} onChange={e => setFormData({...formData, 'Task Description': e.target.value})} class="w-full border p-2 rounded-lg h-20 outline-emerald-500"></textarea>
+                                </div>
+                            </div>
+
+                            {/* Grid 3: SLA Range & Priority */}
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-emerald-50 p-4 rounded-xl">
+                                <div>
+                                    <label class="block text-sm font-bold text-emerald-800 mb-1">Range Code (SLA)</label>
+                                    <select required value={formData['Range Code']} onChange={e => handleRangeChange(e.target.value)} class="w-full border bg-white p-2 rounded-lg outline-emerald-500">
+                                        <option value="">Pilih Range</option>
+                                        {REF_RANGE.map(r => <option key={r.code} value={r.code}>{r.code}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Range Target</label>
+                                    <input type="text" disabled value={formData['Range Target']} class="w-full border bg-gray-100 p-2 rounded-lg text-gray-500" placeholder="Otomatis" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Target (Hour)</label>
+                                    <input type="text" disabled value={formData['Target (Hour)']} class="w-full border bg-gray-100 p-2 rounded-lg text-gray-500" placeholder="Otomatis" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Priority</label>
+                                    <select required value={formData.Priority} onChange={e => setFormData({...formData, Priority: e.target.value})} class="w-full border bg-white p-2 rounded-lg outline-emerald-500">
+                                        <option value="">Pilih Priority</option>
+                                        {REF_PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Grid 4: Pengerjaan & Timestamps */}
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">PIC Assigned</label>
+                                    <select required value={formData['PIC assigned']} onChange={e => setFormData({...formData, 'PIC assigned': e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500">
+                                        <option value="">Pilih PIC</option>
+                                        {REF_PIC.map(pic => <option key={pic} value={pic}>{pic}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Assigned Date & Time</label>
+                                    <input type="datetime-local" required value={formData['Assigned Date and Time']} onChange={e => handleDateChange('Assigned Date and Time', e.target.value)} class="w-full border p-2 rounded-lg outline-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-600 mb-1">Start Date & Time</label>
+                                    <input type="datetime-local" value={formData['Start Date and Time']} onChange={e => setFormData({...formData, 'Start Date and Time': e.target.value})} class="w-full border p-2 rounded-lg outline-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-red-600 mb-1">Target Date & Time (Auto)</label>
+                                    <input type="datetime-local" disabled value={formData['Target Date and Time']} class="w-full border bg-red-50 p-2 rounded-lg text-red-700" />
+                                </div>
+                            </div>
+
+                            {/* Grid 5: Penyelesaian & Auto Metrics */}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50 p-4 rounded-xl">
+                                <div>
+                                    <label class="block text-sm font-medium text-blue-900 mb-1">Actual Finish Date & Time</label>
+                                    <input type="datetime-local" value={formData['Actual Finish Date and Time']} onChange={e => handleDateChange('Actual Finish Date and Time', e.target.value)} class="w-full border bg-white p-2 rounded-lg outline-blue-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-blue-900 mb-1">Duration (Hour) - Auto</label>
+                                    <input type="text" disabled value={formData['Duration (Hour)']} class="w-full border bg-gray-100 p-2 rounded-lg text-gray-700 font-bold" placeholder="Otomatis terhitung" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-emerald-800 mb-1">KPI Score (%) - Auto</label>
+                                    <input type="text" disabled value={formData['Score (%)'] ? formData['Score (%)'] + '%' : ''} class="w-full border bg-gray-100 p-2 rounded-lg text-emerald-700 font-black text-lg" placeholder="Otomatis" />
+                                </div>
+                            </div>
+
+                            {/* Penyelesaian Akhir */}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Resolution Description</label>
+                                <textarea placeholder="Solusi penanganan masalah..." value={formData['Resolution Description']} onChange={e => setFormData({...formData, 'Resolution Description': e.target.value})} class="w-full border p-2 rounded-lg h-20 outline-emerald-500"></textarea>
+                            </div>
+
+                            <div class="flex gap-2 justify-end">
+                                <button type="button" onClick={() => setView('list')} class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-semibold cursor-pointer">Batal</button>
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold cursor-pointer shadow-md">Simpan Tiket ke Google Sheets</button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            );
+        }
+
+        const root = RoyalDOM.createRoot(document.getElementById('root'));
+        // Fallback jika lib React bermasalah di local runtime, mapping global object yang benar
+        const Container = () => {
+            try {
+                return <App />;
+            } catch(e) {
+                return <div class="p-8 text-center text-red-500 font-bold">Terjadi kesalahan pemuatan module script. Pastikan koneksi internet aktif.</div>;
+            }
+        }
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
