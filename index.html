@@ -340,8 +340,8 @@ textarea{height:70px;resize:vertical}
             <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻ Refresh</button>
           </div>
           <div class="tbl-wrap">
-            <table style="min-width:600px">
-              <thead><tr><th>Email</th><th>Nama Lengkap</th><th>Role</th><th>Bergabung</th><th>Ubah Role</th></tr></thead>
+            <table style="min-width:700px">
+              <thead><tr><th>Email</th><th>Nama Lengkap</th><th>Nama PIC (di Tiket)</th><th>Role</th><th>Bergabung</th><th>Ubah Role</th></tr></thead>
               <tbody id="userTbody"></tbody>
             </table>
             <div id="user-loading" class="loading"><div class="spinner"></div> Memuat users...</div>
@@ -446,7 +446,7 @@ async function loadProfile() {
     headers: authHeaders(currentUser.access_token)
   });
   const data = await r.json();
-  currentProfile = data[0] || { role: 'staff', full_name: currentUser.user.email };
+  currentProfile = data[0] || { role: 'staff', full_name: currentUser.user.email, pic_name: '' };
 }
 
 function initApp() {
@@ -499,7 +499,7 @@ async function loadTickets() {
   setConn('loading'); showTblLoading(true);
   try {
     const data = await sbGet();
-    tickets = data.map(row => ({
+    let mapped = data.map(row => ({
       id: row.id, no: row.no,
       dateIn: row.date_in||'', bu: row.business_unit||'', user: row.username||'',
       taskName: row.task_name||'', taskDesc: row.task_desc||'', kat: row.category||'',
@@ -509,6 +509,11 @@ async function loadTickets() {
       duration: row.duration_hour||'', targetHour: row.target_hour||'', score: row.score||'',
       resolution: row.resolution||'', status: row.status||''
     }));
+    // Staff hanya lihat tiket yang di-assign ke mereka
+    if(currentProfile?.role !== 'admin' && currentProfile?.pic_name) {
+      mapped = mapped.filter(t => t.pic.toUpperCase() === currentProfile.pic_name.toUpperCase());
+    }
+    tickets = mapped;
     setConn('ok'); renderTable();
     if (document.getElementById('page-dashboard').classList.contains('active')) renderDash();
     checkDeadlines();
@@ -710,13 +715,60 @@ function renderTable(){
       <td>${fdt(t.actualDate)}</td><td>${t.duration||'-'}</td><td>${t.targetHour||'-'}</td>
       <td><span style="font-family:var(--mono);color:${scoreColor(t.score)}">${t.score||'-'}</span></td>
       <td><span class="td-clip" title="${esc(t.resolution)}">${esc(t.resolution)||'-'}</span></td>
-      <td><span class="badge badge-${(t.status||'').toLowerCase()}">${t.status||'-'}</span></td>
+      <td>
+        ${canChangeStatus(t) ? `
+          <select onchange="changeStatus('${t.no}', this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:3px 6px;font-size:10px;font-family:var(--mono);cursor:pointer">
+            <option value="OPEN" ${t.status==='OPEN'?'selected':''}>OPEN</option>
+            <option value="PAUSE" ${t.status==='PAUSE'?'selected':''}>PAUSE</option>
+            <option value="REASSIGN" ${t.status==='REASSIGN'?'selected':''}>REASSIGN</option>
+            <option value="DONE" ${t.status==='DONE'?'selected':''}>DONE</option>
+            <option value="CLOSE" ${t.status==='CLOSE'?'selected':''}>CLOSE</option>
+          </select>` : `<span class="badge badge-${(t.status||'').toLowerCase()}">${t.status||'-'}</span>`}
+      </td>
       <td><div style="display:flex;gap:4px">
         <button class="btn btn-ghost btn-sm" onclick="viewTicket('${t.no}')" title="Detail">👁</button>
         ${isAdmin?`<button class="btn btn-ghost btn-sm" onclick="editTicket('${t.no}')" title="Edit">✎</button>
         <button class="btn btn-danger" onclick="deleteTicket('${t.no}')" title="Hapus">🗑</button>`:''}
       </div></td>
     </tr>`).join('');
+}
+
+function canChangeStatus(t) {
+  // Admin selalu bisa ubah status
+  if(currentProfile?.role === 'admin') return true;
+  // Staff bisa ubah status kalau dia PIC tiket tersebut
+  if(currentProfile?.pic_name && t.pic) {
+    return t.pic.toUpperCase() === currentProfile.pic_name.toUpperCase();
+  }
+  return false;
+}
+
+async function changeStatus(no, newStatus) {
+  const t = tickets.find(x => String(x.no) === String(no)); if(!t) return;
+  const oldStatus = t.status;
+  // Jika DONE atau CLOSE, set actual finish otomatis jika belum ada
+  let payload = { status: newStatus };
+  if((newStatus === 'DONE' || newStatus === 'CLOSE') && !t.actualDate) {
+    payload.actual_date = new Date().toISOString();
+    // Hitung duration dan score
+    if(t.assignedDate) {
+      const dur = (new Date() - new Date(t.assignedDate)) / 3600000;
+      if(dur > 0) {
+        payload.duration_hour = (+dur.toFixed(2)).toString();
+        const tHour = parseFloat(t.targetHour);
+        if(!isNaN(tHour) && tHour > 0) {
+          payload.score = Math.min(100, Math.round(tHour / dur * 100)) + '%';
+        }
+      }
+    }
+  }
+  try {
+    await sbUpdate(no, payload);
+    toast('Status tiket #' + no + ' diubah ke ' + newStatus + ' ✓', 'ok');
+    await loadTickets();
+  } catch(e) {
+    toast('Gagal ubah status: ' + e.message, 'err');
+  }
 }
 
 function viewTicket(no){
@@ -756,10 +808,16 @@ async function loadUsers(){
     const data=await r.json();
     if(!data.length){document.getElementById('user-empty').style.display='block';}
     else{
+      const PICS = ['','TEGUH','ANG LINIA','BONG SUSANTO','CHRISTIANTO','FAJAR','IMMANUEL','M RAIS','SANDI','SENDHY','SIUTARNO','SMIRNA','SUWITO','VERNANDANI','WILLY','WILLIAM'];
       document.getElementById('userTbody').innerHTML=data.map(u=>`
         <tr>
           <td style="font-family:var(--mono);font-size:11px">${u.email||'-'}</td>
           <td>${u.full_name||'-'}</td>
+          <td>
+            <select onchange="changePicName('${u.id}', this.value)" style="width:auto;padding:4px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px">
+              ${PICS.map(p=>`<option value="${p}" ${(u.pic_name||'')=== p?'selected':''}>${p||'-- Pilih PIC --'}</option>`).join('')}
+            </select>
+          </td>
           <td><span class="badge badge-${u.role||'staff'}">${(u.role||'staff').toUpperCase()}</span></td>
           <td style="font-size:11px">${fdtShort(u.created_at)}</td>
           <td>
@@ -787,6 +845,18 @@ async function changeRole(id, newRole){
     // Reload users list setelah 500ms
     setTimeout(loadUsers, 500);
   }catch(e){toast('Gagal ubah role: '+e.message,'err');}
+}
+
+async function changePicName(id, picName) {
+  try {
+    await fetch(SB_URL+'/rest/v1/profiles?id=eq.'+id, {
+      method:'PATCH',
+      headers:authHeaders(currentUser?.access_token),
+      body:JSON.stringify({pic_name: picName || null})
+    });
+    toast('Nama PIC berhasil diubah ✓', 'ok');
+    setTimeout(loadUsers, 500);
+  } catch(e) { toast('Gagal ubah PIC: '+e.message,'err'); }
 }
 
 function fdtShort(v){
