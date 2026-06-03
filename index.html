@@ -1,367 +1,948 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Support Ticketing System</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IT Support Ticketing System</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;
+  --border:#2a3348;--border2:#354060;
+  --accent:#3b82f6;--accent2:#60a5fa;
+  --green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--orange:#f97316;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px;width:380px;max-width:95vw}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .tag{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
+.login-logo .title{font-size:22px;font-weight:600;color:var(--text)}
+.login-logo .sub{font-size:12px;color:var(--text3);margin-top:4px}
+.login-form .form-group{margin-bottom:16px}
+.login-form label{display:block;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase}
+.login-form input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:10px 12px;font-size:13px;font-family:var(--sans);outline:none;transition:border .15s}
+.login-form input:focus{border-color:var(--accent)}
+.login-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:5px;padding:8px 12px;font-size:12px;margin-bottom:14px;display:none}
+.btn-login{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:background .15s}
+.btn-login:hover{background:#2563eb}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh;display:none}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-tag{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.logo-title{font-size:16px;font-weight:600;color:var(--text);line-height:1.2}
+.sidebar-nav{padding:12px 0;flex:1}
+.nav-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text3);padding:8px 20px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--accent2);background:rgba(59,130,246,.08);border-left-color:var(--accent)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.nav-item.admin-only{display:none}
+.sidebar-user{padding:14px 20px;border-top:1px solid var(--border)}
+.user-name{font-size:12px;color:var(--text);font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-family:var(--mono);font-size:10px;color:var(--accent2);margin-bottom:8px}
+.btn-logout{width:100%;padding:6px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .15s}
+.btn-logout:hover{border-color:var(--red);color:#f87171}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:1px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:7px;height:7px;border-radius:50%}
+.status-text{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+
+/* NOTIF BANNER */
+.notif-banner{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 14px;margin-bottom:14px;display:none}
+.notif-banner.show{display:block}
+.notif-banner-title{font-family:var(--mono);font-size:10px;color:#f87171;letter-spacing:1px;margin-bottom:6px}
+.notif-item{font-size:12px;color:var(--text2);padding:3px 0;border-bottom:1px solid rgba(239,68,68,.15)}
+.notif-item:last-child{border-bottom:none}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.card-title{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:16px}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.blue::before{background:var(--accent)}.metric.green::before{background:var(--green)}
+.metric.yellow::before{background:var(--yellow)}.metric.red::before{background:var(--red)}
+.metric-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.metric-val{font-family:var(--mono);font-size:28px;font-weight:500;color:var(--text);line-height:1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-wrap{position:relative;height:200px}
+
+/* TABLE */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-bar input,.filter-bar select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px 10px;font-size:12px;font-family:var(--sans);outline:none;transition:border .15s}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent)}
+.filter-bar input{flex:1;min-width:160px}
+.filter-bar select{min-width:130px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-size:12px;font-family:var(--sans);font-weight:500;cursor:pointer;transition:all .15s;border:none}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-danger{background:transparent;border:1px solid #3f1f1f;color:#f87171;padding:4px 8px;font-size:11px}
+.btn-danger:hover{background:#3f1f1f}
+.btn-sm{padding:4px 10px;font-size:11px}
+.tbl-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:1500px}
+thead tr{background:var(--bg3)}
+th{padding:9px 12px;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:400}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px;white-space:nowrap;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--text)}
+.td-clip{max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.5px}
+.badge-open{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.badge-close,.badge-done{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.badge-pause{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.badge-reassign{background:rgba(249,115,22,.12);color:#fb923c;border:1px solid rgba(249,115,22,.25)}
+.badge-high{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.badge-medium{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.badge-low{background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
+.badge-admin{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.badge-staff{background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+
+/* FORM */
+.form-section{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;margin:20px 0 14px}
+.form-section:first-child{margin-top:0}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.form-group{margin-bottom:12px}
+label{display:block;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.8px;margin-bottom:5px;text-transform:uppercase}
+input[type=text],input[type=datetime-local],input[type=email],select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 10px;font-size:12px;font-family:var(--sans);outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{height:70px;resize:vertical}
+.auto-field{opacity:.6;cursor:not-allowed}
+.hint{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:24px;width:780px;max-width:95vw;max-height:88vh;overflow-y:auto}
+.modal-sm{width:460px}
+.modal-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.modal-hd-title{font-family:var(--mono);font-size:13px;color:var(--text);line-height:1.4}
+.modal-hd-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.close-btn{background:none;border:1px solid var(--border);color:var(--text3);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.close-btn:hover{border-color:var(--red);color:var(--red)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.detail-item .dl{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.5px;margin-bottom:3px;text-transform:uppercase}
+.detail-item .dv{font-size:12px;color:var(--text);font-weight:500}
+.divider-modal{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;border-bottom:1px solid var(--border);padding-bottom:6px;margin:14px 0 10px}
+
+/* LOADING & TOAST */
+.loading{display:flex;align-items:center;gap:10px;padding:40px;justify-content:center;color:var(--text3);font-family:var(--mono);font-size:12px}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:48px;color:var(--text3);font-family:var(--mono);font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:6px;font-size:12px;z-index:999;font-family:var(--mono);display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:360px}
+.toast.show{display:flex}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+.toast.warn{border-left:3px solid var(--yellow)}
+
+/* PDF MODAL */
+.pdf-opt{display:flex;gap:12px;margin-bottom:16px}
+.pdf-opt-btn{flex:1;padding:14px;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;font-family:var(--sans)}
+.pdf-opt-btn:hover,.pdf-opt-btn.selected{border-color:var(--accent);background:rgba(59,130,246,.08);color:var(--accent2)}
+.pdf-opt-btn .ico{font-size:22px;margin-bottom:6px;display:block}
+.pdf-opt-btn .lbl{font-size:12px;font-weight:500}
+.pdf-opt-btn .sub{font-size:10px;color:var(--text3);margin-top:2px}
+</style>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen">
-    <div id="root"></div>
+<body>
 
-    <script type="text/babel">
-        // ==========================================
-        // CONFIG: PASTE URL GOOGLE APPS SCRIPT KAMU DI SINI
-        // ==========================================
-        const API_URL = "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec";
+<!-- LOGIN PAGE -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="tag">IT Support</div>
+      <div class="title">Ticketing System</div>
+      <div class="sub">Masuk untuk melanjutkan</div>
+    </div>
+    <div class="login-form">
+      <div class="login-err" id="loginErr"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="email@perusahaan.com" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="btn-login" id="loginBtn" onclick="doLogin()">Masuk</button>
+    </div>
+  </div>
+</div>
 
-        // Data Referensi Nilai (Sheet VALUE)
-        const REF_BU = ["AND", "LYN", "MAV", "MBS", "MST", "OPI", "PAL"];
-        const REF_CATEGORY = ["Hardware", "Network", "Internet", "Oracle", "Odoo", "Harmoni", "Development", "Lain-lain"];
-        const REF_PRIORITY = ["High", "Medium", "Low"];
-        const REF_PIC = ["Teguh", "Ang Linia", "Bong Susanto", "IT Support"];
-        const REF_STATUS = ["Open", "Close", "Pause", "Reassign", "Done"];
-        const REF_RANGE = [
-            { code: "Range 1", target: "1 Hour", hour: 1 },
-            { code: "Range 2", target: "4 Hours", hour: 4 },
-            { code: "Range 3", target: "8 Hours", hour: 8 },
-            { code: "Range 4", target: "24 Hours", hour: 24 },
-            { code: "Range 5", target: "Over 24 Hours", hour: 48 }
-        ];
+<!-- MAIN APP -->
+<div class="layout" id="appLayout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-tag">IT Support</div>
+      <div class="logo-title">Ticketing<br>System</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <div class="nav-item active" onclick="sw('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+      </div>
+      <div class="nav-item" onclick="sw('tiket')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>Daftar Tiket
+      </div>
+      <div class="nav-item" onclick="sw('form');newTicket()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Tiket Baru
+      </div>
+      <div class="nav-item admin-only" onclick="sw('users')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Manajemen User
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-name" id="sidebarName">-</div>
+      <div class="user-role" id="sidebarRole">-</div>
+      <button class="btn-logout" onclick="doLogout()">↩ Keluar</button>
+    </div>
+  </aside>
 
-        function App() {
-            const [tickets, setTickets] = React.useState([]);
-            const [loading, setLoading] = React.useState(false);
-            const [view, setView] = React.useState('list'); // 'list' atau 'form'
-            const [search, setSearch] = React.useState('');
-            const [statusFilter, setStatusFilter] = React.useState('');
-            
-            // State Form untuk 20 Kolom Excel
-            const [formData, setFormData] = React.useState({
-                No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',f
-                'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
-                'PIC assigned': '', 'Assigned Date and Time': '', 'Start Date and Time': '', 'Target Date and Time': '',
-                'Actual Finish Date and Time': '', 'Duration (Hour)': '', 'Target (Hour)': '', 'Score (%)': '',
-                'Resolution Description': '', Status: 'Open'
-            });
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+      <div class="topbar-right">
+        <div class="status-dot" id="conn-dot" style="width:7px;height:7px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b"></div>
+        <div class="status-text" id="conn-text">CONNECTING...</div>
+      </div>
+    </div>
+    <div class="content">
 
-            React.useEffect(() => {
-                if(API_URL !== "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec") {
-                    fetchTickets();
-                }
-            }, []);
+      <!-- NOTIF DEADLINE BANNER -->
+      <div class="notif-banner" id="notifBanner">
+        <div class="notif-banner-title">⚠ TIKET MENDEKATI / MELEWATI DEADLINE</div>
+        <div id="notifList"></div>
+      </div>
 
-            const fetchTickets = async () => {
-                setLoading(true);
-                try {
-                    const res = await fetch(`${API_URL}?action=getAll`);
-                    const result = await res.json();
-                    if (result.status === 'ok') setTickets(result.data);
-                } catch (err) {
-                    console.error(err);
-                }
-                setLoading(false);
-            };
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="metrics-grid" id="metrics"></div>
+        <div class="charts-grid">
+          <div class="card"><div class="card-title">Status Tiket</div><div class="chart-wrap"><canvas id="cStatus"></canvas></div></div>
+          <div class="card"><div class="card-title">Per Kategori</div><div class="chart-wrap"><canvas id="cKat"></canvas></div></div>
+        </div>
+        <div class="card"><div class="card-title">Tiket per Bulan</div><div class="chart-wrap" style="height:160px"><canvas id="cBulan"></canvas></div></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-ghost admin-only" onclick="openPdfModal()">⬇ Export PDF</button>
+          <button class="btn btn-ghost admin-only" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn btn-ghost admin-only" onclick="exportXLS()">⬇ Export Excel</button>
+        </div>
+      </div>
 
-            const handleRangeChange = (code) => {
-                const rangeObj = REF_RANGE.find(r => r.code === code);
-                if (rangeObj) {
-                    setFormData(prev => {
-                        const updated = {
-                            ...prev,
-                            'Range Code': code,
-                            'Range Target': rangeObj.target,
-                            'Target (Hour)': rangeObj.hour
-                        };
-                        return calculateTargetAndMetrics(updated);
-                    });
-                }
-            };
+      <!-- DAFTAR TIKET -->
+      <div id="page-tiket" class="page">
+        <div class="filter-bar">
+          <input type="text" id="fs" placeholder="Cari task / user..." oninput="renderTable()"/>
+          <select id="fst" onchange="renderTable()"><option value="">Semua Status</option><option>OPEN</option><option>CLOSE</option><option>PAUSE</option><option>REASSIGN</option><option>DONE</option></select>
+          <select id="fpr" onchange="renderTable()"><option value="">Semua Prioritas</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+          <select id="fbu" onchange="renderTable()"><option value="">Semua BU</option><option>AND</option><option>LYN</option><option>MAV</option><option>MBS</option><option>MST</option><option>OPI</option><option>PAL</option></select>
+          <select id="fkat" onchange="renderTable()"><option value="">Semua Kategori</option><option>HARDWARE</option><option>NETWORK</option><option>INTERNET</option><option>ORACLE</option><option>ODOO</option><option>HARMONI</option><option>DEVELOPMENT</option><option>WEBSITE COMPRO</option><option>SPIDER</option><option>EXCELLENT</option><option>SIMFONI</option><option>OSTicket</option></select>
+          <select id="fbln" onchange="renderTable()"><option value="">Semua Bulan</option><option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option></select>
+          <button class="btn btn-ghost btn-sm" onclick="clearF()">Reset</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadTickets()">↻ Refresh</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>No</th><th>Date & Time IN</th><th>BU</th><th>User</th><th>Task Name</th><th>Task Description</th><th>Category</th><th>Priority</th><th>Range Code</th><th>Range Target</th><th>PIC Assigned</th><th>Assigned Date & Time</th><th>Start Date & Time</th><th>Target Date & Time</th><th>Actual Finish</th><th>Duration (H)</th><th>Target (H)</th><th>Score (%)</th><th>Resolution</th><th>Status</th><th>Aksi</th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div id="tbl-loading" class="loading"><div class="spinner"></div> Memuat data...</div>
+          <div id="tbl-empty" class="empty" style="display:none">— Belum ada tiket —</div>
+        </div>
+      </div>
 
-            const handleDateChange = (field, value) => {
-                setFormData(prev => {
-                    const updated = { ...prev, [field]: value };
-                    return calculateTargetAndMetrics(updated);
-                });
-            };
+      <!-- FORM TIKET -->
+      <div id="page-form" class="page">
+        <div class="card">
+          <div class="form-section">Informasi Dasar</div>
+          <div class="grid3">
+            <div class="form-group"><label>No Tiket</label><input type="text" id="fNo" readonly class="auto-field"/></div>
+            <div class="form-group"><label>Date & Time IN *</label><input type="datetime-local" id="fDateIn"/></div>
+            <div class="form-group"><label>Business Unit *</label>
+              <select id="fBU"><option value="">-- Pilih --</option><option>AND</option><option>LYN</option><option>MAV</option><option>MBS</option><option>MST</option><option>OPI</option><option>PAL</option></select>
+            </div>
+            <div class="form-group"><label>User / Pemohon *</label><input type="text" id="fUser" placeholder="Nama user"/></div>
+            <div class="form-group" style="grid-column:span 2"><label>Task Name *</label><input type="text" id="fTaskName" placeholder="Judul task"/></div>
+          </div>
+          <div class="form-group"><label>Task Description</label><textarea id="fTaskDesc" placeholder="Deskripsi masalah..."></textarea></div>
+          <div class="form-section">Klasifikasi</div>
+          <div class="grid3">
+            <div class="form-group"><label>Category</label>
+              <select id="fKat"><option value="">-- Pilih --</option><option>HARDWARE</option><option>NETWORK</option><option>INTERNET</option><option>ORACLE</option><option>ODOO</option><option>HARMONI</option><option>DEVELOPMENT</option><option>WEBSITE COMPRO</option><option>SPIDER</option><option>EXCELLENT</option><option>SIMFONI</option><option>OSTicket</option></select>
+            </div>
+            <div class="form-group"><label>Priority</label>
+              <select id="fPrio"><option value="">-- Pilih --</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+            </div>
+            <div class="form-group"><label>Range Code</label>
+              <select id="fRange" onchange="onRangeChange()"><option value="">-- Pilih --</option><option>RANGE 1</option><option>RANGE 2</option><option>RANGE 3</option><option>RANGE 4</option><option>RANGE 5</option></select>
+            </div>
+            <div class="form-group"><label>Range Target</label><input type="text" id="fRangeTarget" readonly class="auto-field"/><div class="hint">↑ otomatis dari Range Code</div></div>
+            <div class="form-group"><label>Target (Hour)</label><input type="text" id="fTargetHour" readonly class="auto-field"/><div class="hint">↑ otomatis dari Range Code</div></div>
+            <div class="form-group"><label>Status</label>
+              <select id="fStatus" onchange="onStatusChange()"><option value="">-- Pilih --</option><option>OPEN</option><option>CLOSE</option><option>PAUSE</option><option>REASSIGN</option><option>DONE</option></select>
+            </div>
+          </div>
+          <div class="form-section">Penugasan & Waktu</div>
+          <div class="grid3">
+            <div class="form-group"><label>PIC Assigned</label>
+              <select id="fPIC"><option value="">-- Pilih --</option><option>TEGUH</option><option>ANG LINIA</option><option>BONG SUSANTO</option><option>CHRISTIANTO</option><option>FAJAR</option><option>IMMANUEL</option><option>M RAIS</option><option>SANDI</option><option>SENDHY</option><option>SIUTARNO</option><option>SMIRNA</option><option>SUWITO</option><option>VERNANDANI</option><option>WILLY</option><option>WILLIAM</option></select>
+            </div>
+            <div class="form-group"><label>Assigned Date & Time</label><input type="datetime-local" id="fAssigned" oninput="onAssignedChange()"/></div>
+            <div class="form-group"><label>Start Date & Time</label><input type="datetime-local" id="fStart"/></div>
+            <div class="form-group"><label>Target Date & Time</label><input type="datetime-local" id="fTarget" class="auto-field"/><div class="hint">↑ Assigned + Target Hour</div></div>
+            <div class="form-group"><label>Actual Finish Date & Time</label><input type="datetime-local" id="fActual" oninput="autoCalc()"/></div>
+            <div class="form-group"><label>Duration (Hour)</label><input type="text" id="fDuration" readonly class="auto-field"/><div class="hint">↑ Assigned → Actual Finish</div></div>
+            <div class="form-group" style="grid-column:span 3"><label>Score (%)</label><input type="text" id="fScore" readonly class="auto-field"/><div class="hint">↑ Target Hour ÷ Duration × 100</div></div>
+          </div>
+          <div class="form-section">Resolusi</div>
+          <div class="form-group"><textarea id="fResolution" placeholder="Deskripsi penyelesaian..." style="height:90px"></textarea></div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="cancelForm()">Batal</button>
+            <button class="btn btn-primary" id="save-btn" onclick="saveTicket()">Simpan Tiket</button>
+          </div>
+        </div>
+      </div>
 
-            const calculateTargetAndMetrics = (data) => {
-                let current = { ...data };
-                if (current['Assigned Date and Time'] && current['Target (Hour)']) {
-                    const assigned = new Date(current['Assigned Date and Time']);
-                    assigned.setHours(assigned.getHours() + parseFloat(current['Target (Hour)']));
-                    current['Target Date and Time'] = assigned.toISOString().slice(0, 16);
-                }
-                if (current['Assigned Date and Time'] && current['Actual Finish Date and Time']) {
-                    const assigned = new Date(current['Assigned Date and Time']);
-                    const finish = new Date(current['Actual Finish Date and Time']);
-                    const diffMs = finish - assigned;
-                    const diffHours = Math.max(0, (diffMs / (1000 * 60 * 60)).toFixed(2));
-                    current['Duration (Hour)'] = diffHours;
+      <!-- MANAJEMEN USER (ADMIN ONLY) -->
+      <div id="page-users" class="page">
+        <!-- Info cara tambah user -->
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:12px;color:var(--text2)">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent2);letter-spacing:1px;margin-bottom:6px">ℹ CARA MENAMBAH USER BARU</div>
+          <ol style="padding-left:16px;line-height:2">
+            <li>Buka <b style="color:var(--text)">dashboard.supabase.com</b> → pilih project kamu</li>
+            <li>Klik <b style="color:var(--text)">Authentication</b> → <b style="color:var(--text)">Users</b> → <b style="color:var(--text)">Add user</b> → <b style="color:var(--text)">Create new user</b></li>
+            <li>Isi email & password → klik <b style="color:var(--text)">Create user</b></li>
+            <li>Kembali ke sini, klik <b style="color:var(--text)">↻ Refresh</b> lalu atur role user tersebut</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div class="card-title" style="margin-bottom:0">Daftar User Tim IT</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻ Refresh</button>
+          </div>
+          <div class="tbl-wrap">
+            <table style="min-width:600px">
+              <thead><tr><th>Email</th><th>Nama Lengkap</th><th>Role</th><th>Bergabung</th><th>Ubah Role</th></tr></thead>
+              <tbody id="userTbody"></tbody>
+            </table>
+            <div id="user-loading" class="loading"><div class="spinner"></div> Memuat users...</div>
+            <div id="user-empty" class="empty" style="display:none">— Belum ada user —</div>
+          </div>
+        </div>
+      </div>
 
-                    if (parseFloat(current['Target (Hour)']) > 0) {
-                        let score = (parseFloat(current['Target (Hour)']) / parseFloat(diffHours)) * 100;
-                        if (parseFloat(diffHours) <= parseFloat(current['Target (Hour)'])) {
-                            score = 100; 
-                        }
-                        current['Score (%)'] = Math.min(100, Math.max(0, score)).toFixed(0);
-                    }
-                }
-                return current;
-            };
+    </div>
+  </div>
+</div>
 
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                const finalData = { ...formData, No: formData.No || 'TKT-' + Date.now() };
-                try {
-                    await fetch(API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create', data: finalData })
-                    });
-                    alert("Tiket berhasil dikirim! Silakan cek Google Sheets beberapa saat lagi.");
-                    setView('list');
-                    setFormData({
-                        No: '', 'Date and Time IN': '', 'Bussiness Unit': '', User: '', 'Task Name': '',
-                        'Task Description': '', Category: '', Priority: '', 'Range Code': '', 'Range Target': '',
-                        'PIC assigned': '', 'Assigned Date and Time': '', 'Start Date and Time': '', 'Target Date and Time': '',
-                        'Actual Finish Date and Time': '', 'Duration (Hour)': '', 'Target (Hour)': '', 'Score (%)': '',
-                        'Resolution Description': '', Status: 'Open'
-                    });
-                    setTimeout(fetchTickets, 2000);
-                } catch (err) {
-                    alert("Error menyimpan tiket!");
-                }
-                setLoading(false);
-            };
+<!-- MODAL DETAIL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="modal-hd-title" id="modalTitle">Detail Tiket</div><div class="modal-hd-sub" id="modalSub"></div></div>
+      <button class="close-btn" onclick="closeModal('modalBg')">×</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
-            const exportToCSV = () => {
-                if (tickets.length === 0) return alert("Belum ada data untuk diekspor!");
-                const headers = Object.keys(tickets[0]).filter(k => k !== '_row').join(",");
-                const rows = tickets.map(t => Object.keys(t).filter(k => k !== '_row').map(k => `"${t[k]}"`).join(","));
-                const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "Laporan_Tiket_IT.csv");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
+<!-- MODAL PDF -->
+<div class="modal-bg" id="pdfModal">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <div><div class="modal-hd-title">Export Laporan PDF</div><div class="modal-hd-sub">Pilih jenis laporan</div></div>
+      <button class="close-btn" onclick="closeModal('pdfModal')">×</button>
+    </div>
+    <div class="pdf-opt">
+      <button class="pdf-opt-btn selected" id="pdfOpt1" onclick="selectPdfOpt(1)">
+        <span class="ico">📊</span><div class="lbl">Rekap Bulanan</div><div class="sub">Semua tiket per bulan</div>
+      </button>
+      <button class="pdf-opt-btn" id="pdfOpt2" onclick="selectPdfOpt(2)">
+        <span class="ico">📄</span><div class="lbl">Detail Per Tiket</div><div class="sub">Satu halaman per tiket</div>
+      </button>
+    </div>
+    <div class="form-group"><label>Filter Bulan (Rekap)</label>
+      <select id="pdfBulan"><option value="">Semua Bulan</option><option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option></select>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('pdfModal')">Batal</button>
+      <button class="btn btn-primary" onclick="generatePDF()">⬇ Generate PDF</button>
+    </div>
+  </div>
+</div>
 
-            const filteredTickets = tickets.filter(t => {
-                const matchSearch = Object.values(t).some(val => String(val).toLowerCase().includes(search.toLowerCase()));
-                const matchStatus = statusFilter ? t.Status === statusFilter : true;
-                return matchSearch && matchStatus;
-            });
+<div class="toast" id="toast"></div>
 
-            return (
-                <div class="container mx-auto p-4 max-w-7xl">
-                    <header class="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm mb-6 gap-4">
-                        <div>
-                            <h1 class="text-2xl font-bold text-emerald-600">IT Support Ticketing System</h1>
-                            <p class="text-sm text-gray-500">Farmasi Operational Dashboard & Logging</p>
-                        </div>
-                        <div class="flex gap-2 w-full sm:w-auto justify-end">
-                            <button onClick={() => setView(view === 'list' ? 'form' : 'list')} class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition cursor-pointer text-sm">
-                                {view === 'list' ? '+ Input Tiket Baru' : 'Lihat Daftar Tiket'}
-                            </button>
-                            <button onClick={exportToCSV} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition cursor-pointer text-sm">
-                                Export CSV
-                            </button>
-                        </div>
-                    </header>
+<script>
+// ===== CONFIG =====
+const SB_URL = 'https://xnxjjmefxjputuhkxbbo.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhueGpqbWVmeGpwdXR1aGt4YmJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTc4MTIsImV4cCI6MjA5NTU5MzgxMn0.CnMwvU3hh4jFpNd45sdmxWMc2hiJbgLuxJdkGN5QDAo';
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const MONTHS_S = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+const RANGE_TARGET = {'RANGE 1':'15 MENIT - 2 JAM','RANGE 2':'2 - 4 JAM','RANGE 3':'4 - 8 JAM','RANGE 4':'8 - 16 JAM','RANGE 5':'> 16 JAM'};
+const RANGE_HOUR = {'RANGE 1':2,'RANGE 2':4,'RANGE 3':8,'RANGE 4':16,'RANGE 5':null};
 
-                    {API_URL === "https://script.google.com/macros/s/AKfycbxPE8zxVQyo4HvDQDVd2JMWkxseSmXpWg0X5ZH5XygshFTkZMgvAmqndtdj2PVyKYIe/exec"}
+let tickets = [], currentUser = null, currentProfile = null, editId = null;
+let cS, cK, cB, pdfOptSelected = 1;
+let realtimeChannel = null;
 
-                    {loading && <div class="text-center font-bold text-emerald-600 my-4 animate-bounce">Menghubungkan ke Google Sheets...</div>}
+// ===== AUTH HEADERS =====
+function authHeaders(token) {
+  return { 'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer '+(token||SB_KEY), 'Prefer':'return=representation' };
+}
 
-                    {view === 'list' && (
-                        <div class="bg-white p-6 rounded-xl shadow-sm">
-                            <div class="flex flex-col sm:flex-row gap-4 justify-between mb-4">
-                                <input type="text" placeholder="Cari tiket (User, Komponen, BU...)" value={search} onChange={e => setSearch(e.target.value)} class="border p-2 rounded-lg w-full sm:w-80 outline-emerald-500 text-sm" />
-                                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} class="border p-2 rounded-lg outline-emerald-500 text-sm">
-                                    <option value="">Semua Status</option>
-                                    {REF_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                            </div>
+// ===== LOGIN =====
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  if (!email || !pass) { showLoginErr('Email dan password wajib diisi!'); return; }
+  btn.disabled = true; btn.textContent = 'Masuk...';
+  err.style.display = 'none';
+  try {
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await r.json();
+    if (!r.ok) { showLoginErr(data.error_description || data.msg || 'Login gagal'); return; }
+    currentUser = data;
+    await loadProfile();
+    initApp();
+  } catch(e) { showLoginErr('Koneksi gagal. Coba lagi.'); }
+  btn.disabled = false; btn.textContent = 'Masuk';
+}
 
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="bg-gray-100 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                            <th class="p-3">No</th>
-                                            <th class="p-3">Date IN</th>
-                                            <th class="p-3">BU</th>
-                                            <th class="p-3">User</th>
-                                            <th class="p-3">Task Name</th>
-                                            <th class="p-3">Priority</th>
-                                            <th class="p-3">PIC</th>
-                                            <th class="p-3">Score</th>
-                                            <th class="p-3">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="text-sm divide-y divide-gray-100">
-                                        {filteredTickets.length === 0 ? (
-                                            <tr><td colSpan="9" class="p-8 text-center text-gray-400">Belum ada tiket atau data sedang dimuat.</td></tr>
-                                        ) : (
-                                            filteredTickets.map((t, idx) => (
-                                                <tr key={idx} class="hover:bg-gray-50 transition">
-                                                    <td class="p-3 font-medium text-gray-700">{t.No}</td>
-                                                    <td class="p-3 whitespace-nowrap">{t['Date and Time IN'] ? t['Date and Time IN'].replace('T', ' ') : '-'}</td>
-                                                    <td class="p-3"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-mono text-xs">{t['Bussiness Unit']}</span></td>
-                                                    <td class="p-3 whitespace-nowrap">{t.User}</td>
-                                                    <td class="p-3 font-medium text-gray-900">{t['Task Name']}</td>
-                                                    <td class="p-3">
-                                                        <span class={`px-2 py-0.5 rounded text-xs font-semibold ${t.Priority === 'High' ? 'bg-red-100 text-red-700' : t.Priority === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {t.Priority}
-                                                        </span>
-                                                    </td>
-                                                    <td class="p-3 whitespace-nowrap">{t['PIC assigned']}</td>
-                                                    <td class="p-3 font-bold text-emerald-600">{t['Score (%)'] ? t['Score (%)'] + '%' : '-'}</td>
-                                                    <td class="p-3">
-                                                        <span class={`px-2 py-0.5 rounded text-xs font-bold ${t.Status === 'Done' || t.Status === 'Close' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                            {t.Status}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
+function showLoginErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginBtn').textContent = 'Masuk';
+}
 
-                    {view === 'form' && (
-                        <form onSubmit={handleSubmit} class="bg-white p-6 rounded-xl shadow-sm space-y-6">
-                            <h2 class="text-lg font-bold text-gray-700 border-b pb-2">Form Input Log Tiket IT Support (20 Kolom Excel)</h2>
-                            
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Date and Time IN</label>
-                                    <input type="datetime-local" required value={formData['Date and Time IN']} onChange={e => handleDateChange('Date and Time IN', e.target.value)} class="w-full border p-2 rounded-lg text-sm outline-emerald-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Business Unit (BU)</label>
-                                    <select required value={formData['Bussiness Unit']} onChange={e => setFormData({...formData, 'Bussiness Unit': e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500">
-                                        <option value="">Pilih BU</option>
-                                        {REF_BU.map(bu => <option key={bu} value={bu}>{bu}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">User Name</label>
-                                    <input type="text" required placeholder="Nama User" value={formData.User} onChange={e => setFormData({...formData, User: e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Status Tiket</label>
-                                    <select value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500">
-                                        {REF_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                            </div>
+async function loadProfile() {
+  const r = await fetch(SB_URL + '/rest/v1/profiles?id=eq.' + currentUser.user.id, {
+    headers: authHeaders(currentUser.access_token)
+  });
+  const data = await r.json();
+  currentProfile = data[0] || { role: 'staff', full_name: currentUser.user.email };
+}
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Task Name</label>
-                                    <input type="text" required placeholder="Judul Masalah/Permintaan" value={formData['Task Name']} onChange={e => setFormData({...formData, 'Task Name': e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                                    <select required value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500">
-                                        <option value="">Pilih Kategori</option>
-                                        {REF_CATEGORY.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                    </select>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Task Description</label>
-                                    <textarea placeholder="Detail kendala..." value={formData['Task Description']} onChange={e => setFormData({...formData, 'Task Description': e.target.value})} class="w-full border p-2 rounded-lg text-sm h-16 outline-emerald-500"></textarea>
-                                </div>
-                            </div>
+function initApp() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'flex';
+  document.getElementById('sidebarName').textContent = currentProfile.full_name || currentUser.user.email;
+  document.getElementById('sidebarRole').textContent = (currentProfile.role || 'staff').toUpperCase();
+  // Show admin menus
+  if (currentProfile.role === 'admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+  }
+  setConn('loading');
+  loadTickets();
+  setupRealtime();
+  setInterval(checkDeadlines, 60000);
+}
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-emerald-50 p-4 rounded-xl">
-                                <div>
-                                    <label class="block text-xs font-bold text-emerald-800 mb-1">Range Code (SLA)</label>
-                                    <select required value={formData['Range Code']} onChange={e => handleRangeChange(e.target.value)} class="w-full border bg-white p-2 rounded-lg text-sm outline-emerald-500">
-                                        <option value="">Pilih Range</option>
-                                        {REF_RANGE.map(r => <option key={r.code} value={r.code}>{r.code}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Range Target</label>
-                                    <input type="text" disabled value={formData['Range Target']} class="w-full border bg-gray-100 p-2 rounded-lg text-sm text-gray-500" placeholder="Auto" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Target (Hour)</label>
-                                    <input type="text" disabled value={formData['Target (Hour)']} class="w-full border bg-gray-100 p-2 rounded-lg text-sm text-gray-500" placeholder="Auto" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Priority</label>
-                                    <select required value={formData.Priority} onChange={e => setFormData({...formData, Priority: e.target.value})} class="w-full border bg-white p-2 rounded-lg text-sm outline-emerald-500">
-                                        <option value="">Pilih Priority</option>
-                                        {REF_PRIORITY.map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </div>
-                            </div>
+async function doLogout() {
+  if (realtimeChannel) realtimeChannel.close();
+  await fetch(SB_URL + '/auth/v1/logout', { method: 'POST', headers: authHeaders(currentUser?.access_token) });
+  currentUser = null; currentProfile = null; tickets = [];
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('appLayout').style.display = 'none';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+}
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">PIC Assigned</label>
-                                    <select required value={formData['PIC assigned']} onChange={e => setFormData({...formData, 'PIC assigned': e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500">
-                                        <option value="">Pilih PIC</option>
-                                        {REF_PIC.map(pic => <option key={pic} value={pic}>{pic}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Assigned Date & Time</label>
-                                    <input type="datetime-local" required value={formData['Assigned Date and Time']} onChange={e => handleDateChange('Assigned Date and Time', e.target.value)} class="w-full border p-2 rounded-lg text-sm outline-emerald-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Start Date & Time</label>
-                                    <input type="datetime-local" value={formData['Start Date and Time']} onChange={e => setFormData({...formData, 'Start Date and Time': e.target.value})} class="w-full border p-2 rounded-lg text-sm outline-emerald-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-red-600 mb-1">Target Date & Time (Auto)</label>
-                                    <input type="datetime-local" disabled value={formData['Target Date and Time']} class="w-full border bg-red-50 p-2 rounded-lg text-sm text-red-700" />
-                                </div>
-                            </div>
+// ===== SUPABASE API =====
+async function sbGet() {
+  const r = await fetch(SB_URL + '/rest/v1/tiket?order=no.asc', { headers: authHeaders(currentUser?.access_token) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(data) {
+  const r = await fetch(SB_URL + '/rest/v1/tiket', { method:'POST', headers: authHeaders(currentUser?.access_token), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpdate(no, data) {
+  const r = await fetch(SB_URL + '/rest/v1/tiket?no=eq.' + no, { method:'PATCH', headers: authHeaders(currentUser?.access_token), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(no) {
+  const r = await fetch(SB_URL + '/rest/v1/tiket?no=eq.' + no, { method:'DELETE', headers: authHeaders(currentUser?.access_token) });
+  if (!r.ok) throw new Error(await r.text());
+}
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-blue-50 p-4 rounded-xl">
-                                <div>
-                                    <label class="block text-xs font-medium text-blue-900 mb-1">Actual Finish Date & Time</label>
-                                    <input type="datetime-local" value={formData['Actual Finish Date and Time']} onChange={e => handleDateChange('Actual Finish Date and Time', e.target.value)} class="w-full border bg-white p-2 rounded-lg text-sm outline-blue-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-blue-900 mb-1">Duration (Hour) - Auto</label>
-                                    <input type="text" disabled value={formData['Duration (Hour)']} class="w-full border bg-gray-100 p-2 rounded-lg text-sm text-gray-700 font-bold" placeholder="Auto" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-emerald-800 mb-1">KPI Score - Auto</label>
-                                    <input type="text" disabled value={formData['Score (%)'] ? formData['Score (%)'] + '%' : ''} class="w-full border bg-gray-100 p-2 rounded-lg text-sm text-emerald-700 font-bold" placeholder="Auto" />
-                                </div>
-                            </div>
+async function loadTickets() {
+  setConn('loading'); showTblLoading(true);
+  try {
+    const data = await sbGet();
+    tickets = data.map(row => ({
+      id: row.id, no: row.no,
+      dateIn: row.date_in||'', bu: row.business_unit||'', user: row.username||'',
+      taskName: row.task_name||'', taskDesc: row.task_desc||'', kat: row.category||'',
+      priority: row.priority||'', rangeCode: row.range_code||'', rangeTarget: row.range_target||'',
+      pic: row.pic_assigned||'', assignedDate: row.assigned_date||'', startDate: row.start_date||'',
+      targetDate: row.target_date||'', actualDate: row.actual_date||'',
+      duration: row.duration_hour||'', targetHour: row.target_hour||'', score: row.score||'',
+      resolution: row.resolution||'', status: row.status||''
+    }));
+    setConn('ok'); renderTable();
+    if (document.getElementById('page-dashboard').classList.contains('active')) renderDash();
+    checkDeadlines();
+  } catch(e) { setConn('err'); toast('Gagal memuat data: ' + e.message, 'err'); }
+  showTblLoading(false);
+}
 
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Resolution Description</label>
-                                <textarea placeholder="Solusi penanganan..." value={formData['Resolution Description']} onChange={e => setFormData({...formData, 'Resolution Description': e.target.value})} class="w-full border p-2 rounded-lg text-sm h-16 outline-emerald-500"></textarea>
-                            </div>
+// ===== REALTIME =====
+function setupRealtime() {
+  // Supabase Realtime via WebSocket
+  const wsUrl = 'wss://' + SB_URL.replace('https://','') + '/realtime/v1/websocket?apikey=' + SB_KEY + '&vsn=1.0.0';
+  try {
+    const ws = new WebSocket(wsUrl);
+    realtimeChannel = ws;
+    ws.onopen = () => {
+      ws.send(JSON.stringify({topic:'realtime:public:tiket',event:'phx_join',payload:{},ref:'1'}));
+    };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
+        loadTickets();
+        toast('Data tiket diperbarui (realtime) ↺', 'ok');
+      }
+    };
+    ws.onerror = () => {}; // silent fail
+  } catch(e) {}
+}
 
-                            <div class="flex gap-2 justify-end">
-                                <button type="button" onClick={() => setView('list')} class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-semibold text-sm cursor-pointer">Batal</button>
-                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold text-sm cursor-pointer shadow-md">Simpan Tiket</button>
-                            </div>
-                        </form>
-                    )}
-                </div>
-            );
-        }
+// ===== DEADLINE CHECK =====
+function checkDeadlines() {
+  const now = new Date();
+  const soon = new Date(now.getTime() + 2 * 3600000); // 2 jam ke depan
+  const overdue = [], near = [];
+  tickets.filter(t => !['DONE','CLOSE'].includes(t.status) && t.targetDate).forEach(t => {
+    const td = new Date(t.targetDate);
+    if (td < now) overdue.push({ t, label: '🔴 MELEWATI DEADLINE: #' + t.no + ' — ' + t.taskName + ' (Target: ' + fdt(t.targetDate) + ')' });
+    else if (td <= soon) near.push({ t, label: '🟡 MENDEKATI DEADLINE: #' + t.no + ' — ' + t.taskName + ' (Target: ' + fdt(t.targetDate) + ')' });
+  });
+  const all = [...overdue, ...near];
+  const banner = document.getElementById('notifBanner');
+  const list = document.getElementById('notifList');
+  if (all.length) {
+    list.innerHTML = all.map(x => `<div class="notif-item">${x.label}</div>`).join('');
+    banner.classList.add('show');
+    if (overdue.length) toast('⚠ ' + overdue.length + ' tiket melewati deadline!', 'warn');
+  } else {
+    banner.classList.remove('show');
+  }
+}
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+// ===== NAV =====
+function sw(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const idx = {dashboard:0,tiket:1,form:2,users:3}[p];
+  document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  document.getElementById('topbar-title').textContent = {dashboard:'DASHBOARD',tiket:'DAFTAR TIKET',form:'FORM TIKET',users:'MANAJEMEN USER'}[p];
+  if (p==='dashboard') renderDash();
+  if (p==='tiket') renderTable();
+  if (p==='users') loadUsers();
+}
+
+// ===== FORM =====
+function toLocalDT(ms) { const d=new Date(ms),pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function toInputDT(v) { if(!v)return''; try{const d=new Date(v);if(isNaN(d))return'';return toLocalDT(d.getTime());}catch{return'';} }
+function getTargetHour() {
+  const r=(document.getElementById('fRange').value||'').toUpperCase().trim();
+  const h=RANGE_HOUR[r]; if(h!=null)return h;
+  const raw=parseFloat(document.getElementById('fTargetHour').value);
+  return(!isNaN(raw)&&raw>0)?raw:null;
+}
+function onRangeChange() {
+  const r=(document.getElementById('fRange').value||'').toUpperCase().trim();
+  document.getElementById('fRangeTarget').value=RANGE_TARGET[r]||'';
+  document.getElementById('fTargetHour').value=RANGE_HOUR[r]!=null?RANGE_HOUR[r]:'';
+  calcTargetDate(); autoCalc();
+}
+function onAssignedChange(){calcTargetDate();autoCalc();}
+function calcTargetDate() {
+  const a=document.getElementById('fAssigned').value;
+  const r=(document.getElementById('fRange').value||'').toUpperCase().trim();
+  const h=RANGE_HOUR[r];
+  document.getElementById('fTarget').value=(a&&h)?toLocalDT(new Date(a).getTime()+h*3600000):'';
+}
+function onStatusChange() {
+  const st=document.getElementById('fStatus').value;
+  if(st==='DONE'||st==='CLOSE'){
+    const el=document.getElementById('fActual');
+    if(!el.value){el.value=toLocalDT(Date.now());}
+    el.style.borderColor='var(--green)'; autoCalc();
+    setTimeout(()=>{el.style.borderColor='';},2500);
+  }
+}
+function autoCalc() {
+  const a=document.getElementById('fAssigned').value, ac=document.getElementById('fActual').value, h=getTargetHour();
+  let dur='',score='';
+  if(a&&ac){const d=(new Date(ac)-new Date(a))/3600000;if(d>0){dur=+d.toFixed(2);if(h!=null)score=Math.min(100,Math.round(h/d*100))+'%';}}
+  document.getElementById('fDuration').value=dur;
+  document.getElementById('fScore').value=score;
+}
+function nextNo(){return tickets.length?Math.max(...tickets.map(t=>Number(t.no)||0))+1:1;}
+function newTicket(){resetForm();document.getElementById('fNo').value='Auto #'+nextNo();}
+
+async function saveTicket() {
+  const dateIn=document.getElementById('fDateIn').value, user=document.getElementById('fUser').value.trim(), taskName=document.getElementById('fTaskName').value.trim();
+  if(!dateIn||!user||!taskName){toast('Date & Time IN, User, dan Task Name wajib diisi!','err');return;}
+  const btn=document.getElementById('save-btn'); btn.disabled=true; btn.textContent='Menyimpan...';
+  const assigned=document.getElementById('fAssigned').value, actual=document.getElementById('fActual').value;
+  const h=getTargetHour(); let dur=null,score='';
+  if(assigned&&actual){const d=(new Date(actual)-new Date(assigned))/3600000;if(d>0){dur=+d.toFixed(2);if(h!=null)score=Math.min(100,Math.round(h/d*100))+'%';}}
+  const range=(document.getElementById('fRange').value||'').toUpperCase().trim();
+  const payload={
+    no:editId||nextNo(), date_in:dateIn||null, business_unit:document.getElementById('fBU').value||null,
+    username:user, task_name:taskName, task_desc:document.getElementById('fTaskDesc').value||null,
+    category:document.getElementById('fKat').value||null, priority:document.getElementById('fPrio').value||null,
+    range_code:range||null, range_target:RANGE_TARGET[range]||null,
+    pic_assigned:document.getElementById('fPIC').value||null, assigned_date:assigned||null,
+    start_date:document.getElementById('fStart').value||null, target_date:document.getElementById('fTarget').value||null,
+    actual_date:actual||null, duration_hour:dur?String(dur):null, target_hour:h!=null?String(h):null,
+    score:score||null, resolution:document.getElementById('fResolution').value||null,
+    status:document.getElementById('fStatus').value||'OPEN',
+    created_by:currentUser?.user?.id||null
+  };
+  try {
+    if(editId){await sbUpdate(editId,payload);toast('Tiket berhasil diupdate! ✓','ok');}
+    else{await sbInsert(payload);toast('Tiket berhasil disimpan! ✓','ok');}
+    resetForm(); await loadTickets(); sw('tiket');
+  } catch(e){toast('Gagal: '+e.message,'err');}
+  btn.disabled=false; btn.textContent='Simpan Tiket';
+}
+
+function resetForm() {
+  ['fDateIn','fBU','fUser','fTaskName','fTaskDesc','fKat','fPrio','fRange','fRangeTarget','fTargetHour','fPIC','fAssigned','fStart','fTarget','fActual','fDuration','fScore','fResolution','fStatus'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('fNo').value=''; editId=null;
+}
+function cancelForm(){resetForm();sw('tiket');}
+
+function editTicket(no) {
+  const t=tickets.find(x=>String(x.no)===String(no)); if(!t)return;
+  editId=t.no;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v!=null?v:'';};
+  const setDT=(id,v)=>{const el=document.getElementById(id);if(el)el.value=toInputDT(v);};
+  set('fNo',t.no); setDT('fDateIn',t.dateIn); set('fBU',t.bu); set('fUser',t.user);
+  set('fTaskName',t.taskName); set('fTaskDesc',t.taskDesc); set('fKat',t.kat);
+  set('fPrio',t.priority); set('fRange',t.rangeCode); set('fRangeTarget',t.rangeTarget);
+  set('fTargetHour',t.targetHour); set('fPIC',t.pic);
+  setDT('fAssigned',t.assignedDate); setDT('fStart',t.startDate);
+  setDT('fTarget',t.targetDate); setDT('fActual',t.actualDate);
+  set('fDuration',t.duration); set('fScore',t.score);
+  set('fResolution',t.resolution); set('fStatus',t.status);
+  sw('form');
+}
+
+async function deleteTicket(no) {
+  if(!confirm('Yakin hapus tiket #'+no+'?'))return;
+  try{await sbDelete(no);toast('Tiket #'+no+' dihapus.','ok');await loadTickets();}
+  catch(e){toast('Gagal hapus: '+e.message,'err');}
+}
+
+// ===== TABLE =====
+function fdt(v){if(!v)return'-';try{const d=new Date(v);return d.toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toTimeString().slice(0,5);}catch{return v;}}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function scoreColor(s){if(!s)return'var(--text3)';const v=parseInt(s);return v>=80?'#4ade80':v>=50?'#fbbf24':'#f87171';}
+
+function isOverdue(t){return!['DONE','CLOSE'].includes(t.status)&&t.targetDate&&new Date(t.targetDate)<new Date();}
+
+function getFiltered(){
+  const s=(document.getElementById('fs')?.value||'').toLowerCase();
+  const st=document.getElementById('fst')?.value||'', pr=document.getElementById('fpr')?.value||'';
+  const bu=document.getElementById('fbu')?.value||'', kat=document.getElementById('fkat')?.value||'';
+  const bln=document.getElementById('fbln')?.value;
+  return tickets.filter(t=>{
+    if(s&&![(t.taskName||''),(t.user||''),(t.taskDesc||'')].join(' ').toLowerCase().includes(s))return false;
+    if(st&&t.status!==st)return false; if(pr&&t.priority!==pr)return false;
+    if(bu&&t.bu!==bu)return false; if(kat&&t.kat!==kat)return false;
+    if(bln!==''&&bln!==undefined){if(!t.dateIn)return false;if(new Date(t.dateIn).getMonth()!==parseInt(bln))return false;}
+    return true;
+  });
+}
+function clearF(){['fs','fst','fpr','fbu','fkat','fbln'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderTable();}
+
+function renderTable(){
+  const data=getFiltered(), tbody=document.getElementById('tbody'), empty=document.getElementById('tbl-empty');
+  if(!data.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const isAdmin=currentProfile?.role==='admin';
+  tbody.innerHTML=data.map(t=>`
+    <tr style="${isOverdue(t)?'background:rgba(239,68,68,.04)':''}">
+      <td><span style="font-family:var(--mono);color:${isOverdue(t)?'#f87171':'var(--accent2)'}">#${t.no}${isOverdue(t)?'⚠':''}</span></td>
+      <td>${fdt(t.dateIn)}</td><td>${t.bu||'-'}</td><td>${t.user||'-'}</td>
+      <td><span class="td-clip" title="${esc(t.taskName)}">${esc(t.taskName)||'-'}</span></td>
+      <td><span class="td-clip" title="${esc(t.taskDesc)}">${esc(t.taskDesc)||'-'}</span></td>
+      <td>${t.kat||'-'}</td>
+      <td><span class="badge badge-${(t.priority||'').toLowerCase()}">${t.priority||'-'}</span></td>
+      <td>${t.rangeCode||'-'}</td><td>${t.rangeTarget||'-'}</td><td>${t.pic||'-'}</td>
+      <td>${fdt(t.assignedDate)}</td><td>${fdt(t.startDate)}</td>
+      <td style="color:${isOverdue(t)?'#f87171':''}">${fdt(t.targetDate)}</td>
+      <td>${fdt(t.actualDate)}</td><td>${t.duration||'-'}</td><td>${t.targetHour||'-'}</td>
+      <td><span style="font-family:var(--mono);color:${scoreColor(t.score)}">${t.score||'-'}</span></td>
+      <td><span class="td-clip" title="${esc(t.resolution)}">${esc(t.resolution)||'-'}</span></td>
+      <td><span class="badge badge-${(t.status||'').toLowerCase()}">${t.status||'-'}</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" onclick="viewTicket('${t.no}')" title="Detail">👁</button>
+        ${isAdmin?`<button class="btn btn-ghost btn-sm" onclick="editTicket('${t.no}')" title="Edit">✎</button>
+        <button class="btn btn-danger" onclick="deleteTicket('${t.no}')" title="Hapus">🗑</button>`:''}
+      </div></td>
+    </tr>`).join('');
+}
+
+function viewTicket(no){
+  const t=tickets.find(x=>String(x.no)===String(no));if(!t)return;
+  document.getElementById('modalTitle').textContent='Tiket #'+t.no+' — '+t.taskName;
+  document.getElementById('modalSub').textContent=(t.bu||'-')+' · '+(t.user||'-')+' · '+fdt(t.dateIn);
+  const row=(l,v)=>`<div class="detail-item"><div class="dl">${l}</div><div class="dv">${v||'-'}</div></div>`;
+  const badge=(v,c)=>v?`<span class="badge badge-${c}">${v}</span>`:'-';
+  document.getElementById('modalBody').innerHTML=`
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div class="divider-modal">INFORMASI DASAR</div>
+      <div class="detail-grid">${row('BU',t.bu)}${row('User',t.user)}${row('Date & Time IN',fdt(t.dateIn))}</div>
+      <div style="margin-top:8px"><div class="dl" style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:4px">TASK NAME</div><div style="font-size:13px;color:var(--text);font-weight:500">${esc(t.taskName)}</div></div>
+      <div style="margin-top:8px"><div class="dl" style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:4px">TASK DESCRIPTION</div><div style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(t.taskDesc)||'-'}</div></div>
+    </div>
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div class="divider-modal">KLASIFIKASI</div>
+      <div class="detail-grid">${row('Category',t.kat)}${row('Priority',badge(t.priority,(t.priority||'').toLowerCase()))}${row('Status',badge(t.status,(t.status||'').toLowerCase()))}${row('Range Code',t.rangeCode)}${row('Range Target',t.rangeTarget)}${row('Target (Hour)',t.targetHour)}</div>
+    </div>
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div class="divider-modal">PENUGASAN & WAKTU</div>
+      <div class="detail-grid">${row('PIC',t.pic)}${row('Assigned',fdt(t.assignedDate))}${row('Start',fdt(t.startDate))}${row('Target',fdt(t.targetDate))}${row('Actual Finish',fdt(t.actualDate))}${row('Duration (H)',t.duration)}${row('Score','<span style="color:'+scoreColor(t.score)+';font-family:var(--mono)">'+(t.score||'-')+'</span>')}</div>
+    </div>
+    <div><div class="divider-modal">RESOLUTION</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(t.resolution)||'-'}</div>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+// ===== USERS =====
+async function loadUsers(){
+  document.getElementById('user-loading').style.display='flex';
+  document.getElementById('userTbody').innerHTML='';
+  document.getElementById('user-empty').style.display='none';
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/profiles?order=created_at.asc',{headers:authHeaders(currentUser?.access_token)});
+    const data=await r.json();
+    if(!data.length){document.getElementById('user-empty').style.display='block';}
+    else{
+      document.getElementById('userTbody').innerHTML=data.map(u=>`
+        <tr>
+          <td style="font-family:var(--mono);font-size:11px">${u.email||'-'}</td>
+          <td>${u.full_name||'-'}</td>
+          <td><span class="badge badge-${u.role||'staff'}">${(u.role||'staff').toUpperCase()}</span></td>
+          <td style="font-size:11px">${fdtShort(u.created_at)}</td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select onchange="changeRole('${u.id}', this.value)" style="width:auto;padding:4px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px">
+                <option value="staff" ${(u.role||'staff')==='staff'?'selected':''}>Staff</option>
+                <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+              </select>
+              ${u.id === currentUser?.user?.id ? '<span style="font-size:10px;color:var(--text3);font-family:var(--mono)">(Kamu)</span>' : ''}
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+  }catch(e){toast('Gagal load users: '+e.message,'err');}
+  document.getElementById('user-loading').style.display='none';
+}
+
+async function changeRole(id, newRole){
+  if(id === currentUser?.user?.id && newRole !== 'admin'){
+    if(!confirm('Yakin ingin mengubah role kamu sendiri menjadi Staff? Kamu tidak bisa mengakses fitur admin setelah ini!'))return;
+  }
+  try{
+    await fetch(SB_URL+'/rest/v1/profiles?id=eq.'+id,{method:'PATCH',headers:authHeaders(currentUser?.access_token),body:JSON.stringify({role:newRole})});
+    toast('Role berhasil diubah ke '+newRole.toUpperCase()+' ✓','ok');
+    // Reload users list setelah 500ms
+    setTimeout(loadUsers, 500);
+  }catch(e){toast('Gagal ubah role: '+e.message,'err');}
+}
+
+function fdtShort(v){
+  if(!v)return'-';
+  try{const d=new Date(v);return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});}catch{return v;}
+}
+
+// ===== DASHBOARD =====
+function renderDash(){
+  const total=tickets.length, open=tickets.filter(t=>t.status==='OPEN').length;
+  const done=tickets.filter(t=>['DONE','CLOSE'].includes(t.status)).length;
+  const overdue=tickets.filter(t=>isOverdue(t)).length;
+  const scores=tickets.map(t=>parseInt(t.score)).filter(v=>!isNaN(v));
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric blue"><div class="metric-label">Total Tiket</div><div class="metric-val">${total}</div><div class="metric-sub">semua tiket</div></div>
+    <div class="metric blue"><div class="metric-label">Open</div><div class="metric-val" style="color:#60a5fa">${open}</div><div class="metric-sub">menunggu</div></div>
+    <div class="metric green"><div class="metric-label">Selesai</div><div class="metric-val" style="color:#4ade80">${done}</div><div class="metric-sub">done / close</div></div>
+    <div class="metric ${overdue>0?'red':'yellow'}"><div class="metric-label">Overdue</div><div class="metric-val" style="color:${overdue>0?'#f87171':'#fbbf24'}">${overdue}</div><div class="metric-sub">melewati deadline</div></div>`;
+  const statuses=['OPEN','CLOSE','PAUSE','REASSIGN','DONE'];
+  const sCnt=statuses.map(s=>tickets.filter(t=>t.status===s).length);
+  const cats={};tickets.forEach(t=>{if(t.kat)cats[t.kat]=(cats[t.kat]||0)+1;});
+  const cL=Object.keys(cats).slice(0,10),cV=cL.map(k=>cats[k]);
+  const mCnt=new Array(12).fill(0);tickets.forEach(t=>{if(t.dateIn){const m=new Date(t.dateIn).getMonth();if(m>=0&&m<12)mCnt[m]++;}});
+  if(cS)cS.destroy();if(cK)cK.destroy();if(cB)cB.destroy();
+  const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',boxWidth:10,font:{size:10}}}}};
+  cS=new Chart(document.getElementById('cStatus'),{type:'doughnut',data:{labels:statuses,datasets:[{data:sCnt,backgroundColor:['#3b82f6','#22c55e','#f59e0b','#f97316','#06b6d4'],borderWidth:0,hoverOffset:4}]},options:{...co,cutout:'65%'}});
+  cK=new Chart(document.getElementById('cKat'),{type:'bar',data:{labels:cL,datasets:[{label:'Tiket',data:cV,backgroundColor:'rgba(59,130,246,.7)',borderWidth:0,borderRadius:3}]},options:{...co,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#64748b',stepSize:1},grid:{color:'#1e2535'},beginAtZero:true},x:{ticks:{color:'#64748b',font:{size:9},maxRotation:30},grid:{display:false}}}}});
+  cB=new Chart(document.getElementById('cBulan'),{type:'line',data:{labels:MONTHS_S,datasets:[{label:'Tiket',data:mCnt,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#3b82f6',pointBorderWidth:0}]},options:{...co,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#64748b',stepSize:1},grid:{color:'#1e2535'},beginAtZero:true},x:{ticks:{color:'#64748b'},grid:{display:false}}}}});
+}
+
+// ===== PDF =====
+function openPdfModal(){document.getElementById('pdfModal').classList.add('open');}
+function selectPdfOpt(n){
+  pdfOptSelected=n;
+  document.getElementById('pdfOpt1').classList.toggle('selected',n===1);
+  document.getElementById('pdfOpt2').classList.toggle('selected',n===2);
+}
+
+function generatePDF(){
+  const{jsPDF}=window.jspdf;
+  if(pdfOptSelected===1) pdfRekap(jsPDF);
+  else pdfDetail(jsPDF);
+  closeModal('pdfModal');
+}
+
+function pdfRekap(jsPDF){
+  const bln=document.getElementById('pdfBulan').value;
+  let data=tickets;
+  let title='Laporan Rekap Tiket IT Support';
+  if(bln!==''){data=tickets.filter(t=>t.dateIn&&new Date(t.dateIn).getMonth()===parseInt(bln));title='Laporan Tiket IT Support — '+MONTHS[parseInt(bln)];}
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const now=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+  doc.setFont('helvetica','bold');doc.setFontSize(14);
+  doc.text(title,14,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text('Dicetak: '+now+' | Total: '+data.length+' tiket | Admin: '+(currentProfile?.full_name||'-'),14,23);
+  // Summary
+  const done=data.filter(t=>['DONE','CLOSE'].includes(t.status)).length;
+  const open=data.filter(t=>t.status==='OPEN').length;
+  const scores=data.map(t=>parseInt(t.score)).filter(v=>!isNaN(v));
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+  doc.setTextColor(0);
+  doc.setFontSize(9);
+  doc.text('Total: '+data.length+' | Open: '+open+' | Selesai: '+done+' | Avg Score: '+avg+'%',14,30);
+  doc.autoTable({
+    startY:35, styles:{fontSize:7,cellPadding:2},
+    headStyles:{fillColor:[30,37,53],textColor:[148,163,184],fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[22,27,39]},
+    bodyStyles:{textColor:[226,232,240]},
+    head:[['No','Date IN','BU','User','Task Name','Category','Priority','Range','PIC','Target Date','Actual Finish','Duration(H)','Score(%)','Status']],
+    body:data.map(t=>[t.no,fdt(t.dateIn),t.bu||'-',t.user||'-',t.taskName||'-',t.kat||'-',t.priority||'-',t.rangeCode||'-',t.pic||'-',fdt(t.targetDate),fdt(t.actualDate),t.duration||'-',t.score||'-',t.status||'-'])
+  });
+  doc.save('Rekap_Tiket_IT_'+today()+'.pdf');
+  toast('PDF rekap berhasil diexport!','ok');
+}
+
+function pdfDetail(jsPDF){
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const now=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+  tickets.forEach((t,i)=>{
+    if(i>0)doc.addPage();
+    doc.setFillColor(30,37,53);doc.rect(0,0,210,30,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(226,232,240);
+    doc.text('IT Support Ticketing System',14,12);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(148,163,184);
+    doc.text('Detail Tiket #'+t.no+' | Dicetak: '+now,14,21);
+    doc.setTextColor(0);
+    let y=38;
+    const field=(label,val,x1=14,x2=70)=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(100,116,139);doc.text(label,x1,y);
+      doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.text(String(val||'-').substring(0,60),x2,y);
+    };
+    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+    doc.text(t.taskName||'-',14,y);y+=8;
+    doc.setDrawColor(200);doc.line(14,y,196,y);y+=6;
+    field('No Tiket:',t.no);y+=6;field('Date & Time IN:',fdt(t.dateIn));y+=6;
+    field('Business Unit:',t.bu);y+=6;field('User/Pemohon:',t.user);y+=6;
+    doc.setDrawColor(230);doc.line(14,y,196,y);y+=5;
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(59,130,246);doc.text('DESKRIPSI TASK',14,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(50,50,50);
+    const descLines=doc.splitTextToSize(t.taskDesc||'-',180);doc.text(descLines,14,y);y+=descLines.length*4+4;
+    doc.line(14,y,196,y);y+=5;
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(59,130,246);doc.text('KLASIFIKASI',14,y);y+=5;
+    doc.setTextColor(0);
+    field('Kategori:',t.kat,14,55);field('Prioritas:',t.priority,110,155);y+=6;
+    field('Range Code:',t.rangeCode,14,55);field('Range Target:',t.rangeTarget,110,155);y+=6;
+    field('Status:',t.status,14,55);field('Target (Hour):',t.targetHour,110,155);y+=6;
+    doc.line(14,y,196,y);y+=5;
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(59,130,246);doc.text('PENUGASAN & WAKTU',14,y);y+=5;
+    doc.setTextColor(0);
+    field('PIC Assigned:',t.pic,14,55);field('Assigned:',fdt(t.assignedDate),110,155);y+=6;
+    field('Start Date:',fdt(t.startDate),14,55);field('Target Date:',fdt(t.targetDate),110,155);y+=6;
+    field('Actual Finish:',fdt(t.actualDate),14,55);field('Duration (H):',t.duration,110,155);y+=6;
+    field('Score (%):',t.score,14,55);y+=6;
+    doc.line(14,y,196,y);y+=5;
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(59,130,246);doc.text('RESOLUTION',14,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(50,50,50);
+    const resLines=doc.splitTextToSize(t.resolution||'-',180);doc.text(resLines,14,y);
+  });
+  doc.save('Detail_Tiket_IT_'+today()+'.pdf');
+  toast('PDF detail berhasil diexport!','ok');
+}
+
+// ===== EXPORT CSV/XLS =====
+const EXP_H=['No','Date and Time IN','Business Unit','User','Task Name','Task Description','Category','Priority','Range Code','Range Target','PIC Assigned','Assigned Date and Time','Start Date and Time','Target Date and Time','Actual Finish Date and Time','Duration (Hour)','Target (Hour)','Score (%)','Resolution Description','Status'];
+function getRow(t){return[t.no,t.dateIn,t.bu,t.user,t.taskName,t.taskDesc,t.kat,t.priority,t.rangeCode,t.rangeTarget,t.pic,t.assignedDate,t.startDate,t.targetDate,t.actualDate,t.duration,t.targetHour,t.score,t.resolution,t.status];}
+function exportCSV(){
+  if(!tickets.length){toast('Tidak ada data!','err');return;}
+  const csv=[EXP_H.join(','),...tickets.map(t=>getRow(t).map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  dl(new Blob([csv],{type:'text/csv'}),'tiket_IT_'+today()+'.csv');
+}
+function exportXLS(){
+  if(!tickets.length){toast('Tidak ada data!','err');return;}
+  let html='<table border="1"><tr>'+EXP_H.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+  tickets.forEach(t=>{html+='<tr>'+getRow(t).map(v=>'<td>'+(v||'')+'</td>').join('')+'</tr>';});
+  dl(new Blob([html+'</table>'],{type:'application/vnd.ms-excel'}),'tiket_IT_'+today()+'.xls');
+}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+function today(){return new Date().toISOString().slice(0,10);}
+
+// ===== MODAL & TOAST =====
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function setConn(s){
+  const dot=document.getElementById('conn-dot'),txt=document.getElementById('conn-text');
+  const cfg={ok:['#22c55e','CONNECTED'],err:['#ef4444','ERROR'],loading:['#f59e0b','SYNCING...']}[s];
+  dot.style.background=cfg[0];dot.style.boxShadow='0 0 6px '+cfg[0];txt.textContent=cfg[1];
+}
+function showTblLoading(v){document.getElementById('tbl-loading').style.display=v?'flex':'none';if(v)document.getElementById('tbody').innerHTML='';}
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ===== INIT =====
+document.querySelectorAll('.modal-bg').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+</script>
 </body>
 </html>
